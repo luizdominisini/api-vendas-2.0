@@ -1,7 +1,7 @@
-import AppError from "../../../shared/errors/AppError"; //middleware
-import Product from "../typeorm/entities/Product"; //entidade
-import ProductRepository from "../typeorm/repositories/ProductRepository"; //Repositorio
-const repository = ProductRepository;
+import AppError from "../../../shared/errors/AppError";
+import Product from "../typeorm/entities/Product";
+import dataSource from "../../../shared/typeorm";
+import { Repository } from "typeorm";
 
 interface IRequest {
   name: string;
@@ -10,21 +10,32 @@ interface IRequest {
 }
 
 class CreateProductService {
+  private repository: Repository<Product>;
+
+  constructor() {
+    this.repository = dataSource.getRepository(Product);
+  }
+
   public async execute({ name, price, quantity }: IRequest): Promise<Product> {
-    const productExist = await repository.findByName(name);
+    try {
+      const productExist = await this.repository.findOneBy({ name });
 
-    if (productExist) {
-      throw new AppError("There is already one product with that name");
+      if (productExist) {
+        throw new AppError("There is already one product with that name");
+      }
+
+      const product = this.repository.create({
+        name,
+        price,
+        quantity,
+      });
+
+      await this.repository.save(product);
+      return product;
+    } catch (error) {
+      console.error("Error creating product:", error);
+      throw error; // Re-throw the error to be handled by the middleware
     }
-
-    const product = repository.create({
-      name: name,
-      price: price,
-      quantity: quantity,
-    });
-
-    await repository.save(product);
-    return product;
   }
 }
 
