@@ -1,7 +1,7 @@
 import AppError from "../../../shared/errors/AppError";
 import Product from "../typeorm/entities/Product";
-import dataSource from "../../../shared/typeorm";
-import { Repository } from "typeorm";
+import ProductRepository from "../typeorm/repositories/ProductRepository";
+const repository = ProductRepository;
 
 interface IRequest {
   name: string;
@@ -10,27 +10,23 @@ interface IRequest {
 }
 
 class CreateProductService {
-  private repository: Repository<Product>;
-
-  constructor() {
-    this.repository = dataSource.getRepository(Product);
-  }
-
   public async execute({ name, price, quantity }: IRequest): Promise<Product> {
     try {
-      const productExist = await this.repository.findOneBy({ name });
+      const productExist = await repository.findOneBy({ name });
+      //NOTES: Verificar o que aconteceu com o método findByName que foi criado nos repositories.
+      //ele que estava dando erro pois não está funcionando;
 
       if (productExist) {
         throw new AppError("There is already one product with that name");
       }
 
-      const product = this.repository.create({
+      const product = repository.create({
         name,
         price,
         quantity,
       });
 
-      await this.repository.save(product);
+      await repository.save(product);
       return product;
     } catch (error) {
       console.error("Error creating product:", error);
